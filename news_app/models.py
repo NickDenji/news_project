@@ -1,5 +1,6 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser,  Group
+from django.contrib.auth.models import AbstractUser, Group
+
 # Create your models here.
 
 
@@ -16,24 +17,19 @@ class User(AbstractUser):
     """
 
     ROLE_CHOICES = (
-        ('reader', 'Reader'),
-        ('editor', 'Editor'),
-        ('journalist', 'Journalist'),
+        ("reader", "Reader"),
+        ("editor", "Editor"),
+        ("journalist", "Journalist"),
     )
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
 
     subscribed_publishers = models.ManyToManyField(
-        'Publisher',
-        blank=True,
-        related_name='subscribers'
+        "Publisher", blank=True, related_name="subscribers"
     )
 
     subscribed_journalists = models.ManyToManyField(
-        'self',
-        symmetrical=False,
-        blank=True,
-        related_name='followers'
+        "self", symmetrical=False, blank=True, related_name="followers"
     )
 
     def save(self, *args, **kwargs):
@@ -67,15 +63,11 @@ class Publisher(models.Model):
     name = models.CharField(max_length=255)
 
     editors = models.ManyToManyField(
-        'news_app.User',
-        related_name='publisher_editor_roles',
-        blank=True
+        "news_app.User", related_name="publisher_editor_roles", blank=True
     )
 
     journalists = models.ManyToManyField(
-        'news_app.User',
-        related_name='publisher_journalist_roles',
-        blank=True
+        "news_app.User", related_name="publisher_journalist_roles", blank=True
     )
 
     def __str__(self):
@@ -96,17 +88,10 @@ class Article(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
 
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='articles'
-    )
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="articles")
 
     publisher = models.ForeignKey(
-        Publisher,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        Publisher, on_delete=models.SET_NULL, null=True, blank=True
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -140,9 +125,7 @@ class Newsletter(models.Model):
     description = models.TextField()
 
     author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='newsletters'
+        User, on_delete=models.CASCADE, related_name="newsletters"
     )
 
     articles = models.ManyToManyField(Article)

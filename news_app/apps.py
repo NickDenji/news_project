@@ -9,4 +9,4 @@ class NewsAppConfig(AppConfig):
     used by Django when initializing the app.
     """
 
-    name = 'news_app'
+    name = "news_app"

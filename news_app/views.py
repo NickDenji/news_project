@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Article
+from .models import Article, User
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import user_passes_test
@@ -19,31 +19,50 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
 import requests
+from django.contrib.auth import login
+from .permissions import IsReader
+
 # Create your views here.
 
 
-@login_required
+def register(request):
+    """
+    Handles user registration.
+    """
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        role = request.POST.get("role")
+
+        user = User.objects.create_user(username=username, password=password, role=role)
+
+        login(request, user)
+        return redirect("home")
+
+    return render(request, "news_app/register.html")
+
+
 def home(request):
     """
     Displays articles based on user role.
     """
 
-    if request.user.role == 'editor':
+    if not request.user.is_authenticated:
+        return render(request, "news_app/home.html")
+
+    if request.user.role == "editor":
         articles = Article.objects.all()
 
-    elif request.user.role == 'reader':
+    elif request.user.role == "reader":
         articles = Article.objects.filter(
-            approved=True,
-            author__in=request.user.subscribed_journalists.all()
+            approved=True, author__in=request.user.subscribed_journalists.all()
         )
 
     else:
         # journalist
         articles = Article.objects.filter(approved=True)
 
-    return render(request, 'news_app/home.html', {
-        'articles': articles
-    })
+    return render(request, "news_app/home.html", {"articles": articles})
 
 
 def is_editor(user):
@@ -60,7 +79,7 @@ def is_editor(user):
     Returns:
         bool: True if the user has the role 'editor', otherwise False.
     """
-    return user.role == 'editor'
+    return user.role == "editor"
 
 
 @user_passes_test(is_editor)
@@ -76,11 +95,10 @@ def approve_article(request, article_id):
         article.save()
 
         requests.post(
-            "http://127.0.0.1:8000/api/approved/",
-            json={"article_id": article.id}
+            "http://127.0.0.1:8000/api/approved/", json={"article_id": article.id}
         )
 
-    return redirect('home')
+    return redirect("home")
 
 
 class ArticleListAPIView(APIView):
@@ -96,19 +114,18 @@ class ArticleListAPIView(APIView):
 
 
 class SubscribedArticlesAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsReader]
 
     def get(self, request):
         """
         Returns articles from subscribed publishers and journalists.
+        Accessible only to readers.
         """
         user = request.user
 
-        articles = Article.objects.filter(
-            approved=True
-        ).filter(
-            Q(author__in=user.subscribed_journalists.all()) |
-            Q(publisher__in=user.subscribed_publishers.all())
+        articles = Article.objects.filter(approved=True).filter(
+            Q(author__in=user.subscribed_journalists.all())
+            | Q(publisher__in=user.subscribed_publishers.all())
         )
 
         serializer = ArticleSerializer(articles, many=True)
@@ -144,6 +161,7 @@ class ArticleCreateAPIView(CreateAPIView):
     """
     Allows journalists to create articles.
     """
+
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     permission_classes = [IsAuthenticated, IsJournalist]
@@ -156,6 +174,7 @@ class ArticleUpdateAPIView(UpdateAPIView):
     """
     Allows editors and journalists to update articles.
     """
+
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     permission_classes = [IsAuthenticated, IsEditorOrJournalist]
@@ -164,7 +183,10 @@ class ArticleUpdateAPIView(UpdateAPIView):
         article = self.get_object()
 
         # Journalists can only edit their own articles
-        if self.request.user.role == 'journalist' and article.author != self.request.user:
+        if (
+            self.request.user.role == "journalist"
+            and article.author != self.request.user
+        ):
             raise PermissionDenied("You can only edit your own articles.")
 
         serializer.save()
@@ -174,20 +196,19 @@ class ArticleDeleteAPIView(DestroyAPIView):
     """
     Allows editors to delete articles.
     """
+
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     permission_classes = [IsAuthenticated, IsEditor]
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def approved_article_log(request):
     """
     Logs approved articles (simulating external API).
     """
 
-    article_id = request.data.get('article_id')
+    article_id = request.data.get("article_id")
 
-    return Response({
-        "message": f"Article {article_id} received by external API"
-    })
+    return Response({"message": f"Article {article_id} received by external API"})

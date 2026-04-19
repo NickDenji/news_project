@@ -1,13 +1,22 @@
 from rest_framework.permissions import BasePermission
 
 
+class IsReader(BasePermission):
+    """
+    Custom permission to allow access only to users with the 'reader' role.
+    """
+
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "reader"
+
+
 class IsJournalist(BasePermission):
     """
     Allows access only to users with the journalist role.
     """
 
     def has_permission(self, request, view):
-        return request.user.role == 'journalist'
+        return request.user.role == "journalist"
 
 
 class IsEditor(BasePermission):
@@ -16,7 +25,7 @@ class IsEditor(BasePermission):
     """
 
     def has_permission(self, request, view):
-        return request.user.role == 'editor'
+        return request.user.role == "editor"
 
 
 class IsEditorOrJournalist(BasePermission):
@@ -25,4 +34,4 @@ class IsEditorOrJournalist(BasePermission):
     """
 
     def has_permission(self, request, view):
-        return request.user.role in ['editor', 'journalist']
+        return request.user.role in ["editor", "journalist"]

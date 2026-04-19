@@ -25,28 +25,19 @@ class ArticleAPITests(APITestCase):
         """
 
         self.journalist = User.objects.create_user(
-            username='journalist',
-            password='pass123',
-            role='journalist'
+            username="journalist", password="pass123", role="journalist"
         )
 
         self.editor = User.objects.create_user(
-            username='editor',
-            password='pass123',
-            role='editor'
+            username="editor", password="pass123", role="editor"
         )
 
         self.reader = User.objects.create_user(
-            username='reader',
-            password='pass123',
-            role='reader'
+            username="reader", password="pass123", role="reader"
         )
 
         self.article = Article.objects.create(
-            title='Test',
-            content='Test content',
-            author=self.journalist,
-            approved=False
+            title="Test", content="Test content", author=self.journalist, approved=False
         )
 
     def test_journalist_can_create_article(self):
@@ -56,12 +47,11 @@ class ArticleAPITests(APITestCase):
         Expected result:
             - HTTP 201 Created
         """
-        self.client.login(username='journalist', password='pass123')
+        self.client.login(username="journalist", password="pass123")
 
-        response = self.client.post('/api/articles/create/', {
-            'title': 'New Article',
-            'content': 'Some content'
-        })
+        response = self.client.post(
+            "/api/articles/create/", {"title": "New Article", "content": "Some content"}
+        )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -72,12 +62,11 @@ class ArticleAPITests(APITestCase):
         Expected result:
             - HTTP 403 Forbidden
         """
-        self.client.login(username='reader', password='pass123')
+        self.client.login(username="reader", password="pass123")
 
-        response = self.client.post('/api/articles/create/', {
-            'title': 'Fail',
-            'content': 'Should not work'
-        })
+        response = self.client.post(
+            "/api/articles/create/", {"title": "Fail", "content": "Should not work"}
+        )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -88,9 +77,9 @@ class ArticleAPITests(APITestCase):
         Expected result:
             - HTTP 204 No Content
         """
-        self.client.login(username='editor', password='pass123')
+        self.client.login(username="editor", password="pass123")
 
-        response = self.client.delete(f'/api/articles/{self.article.id}/delete/')
+        response = self.client.delete(f"/api/articles/{self.article.id}/delete/")
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
@@ -101,9 +90,9 @@ class ArticleAPITests(APITestCase):
         Expected result:
             - HTTP 403 Forbidden
         """
-        self.client.login(username='journalist', password='pass123')
+        self.client.login(username="journalist", password="pass123")
 
-        response = self.client.delete(f'/api/articles/{self.article.id}/delete/')
+        response = self.client.delete(f"/api/articles/{self.article.id}/delete/")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -115,16 +104,16 @@ class ArticleAPITests(APITestCase):
             - Unapproved articles are hidden
             - Approved articles are visible
         """
-        self.client.login(username='reader', password='pass123')
+        self.client.login(username="reader", password="pass123")
 
-        response = self.client.get('/api/articles/')
+        response = self.client.get("/api/articles/")
         self.assertEqual(len(response.data), 0)
 
         # Approve article
         self.article.approved = True
         self.article.save()
 
-        response = self.client.get('/api/articles/')
+        response = self.client.get("/api/articles/")
         self.assertEqual(len(response.data), 1)
 
     def test_reader_gets_only_subscribed_articles(self):
@@ -134,7 +123,7 @@ class ArticleAPITests(APITestCase):
         Expected behaviour:
             - Only articles from subscribed users are returned
         """
-        self.client.login(username='reader', password='pass123')
+        self.client.login(username="reader", password="pass123")
 
         # Subscribe reader to journalist
         self.reader.subscribed_journalists.add(self.journalist)
@@ -143,11 +132,11 @@ class ArticleAPITests(APITestCase):
         self.article.approved = True
         self.article.save()
 
-        response = self.client.get('/api/articles/subscribed/')
+        response = self.client.get("/api/articles/subscribed/")
 
         self.assertEqual(len(response.data), 1)
 
-    @patch('news_app.views.requests.post')
+    @patch("news_app.views.requests.post")
     def test_approval_triggers_api_call(self, mock_post):
         """
         Verify that approving an article triggers an external API call.
@@ -155,8 +144,8 @@ class ArticleAPITests(APITestCase):
         Expected behaviour:
             - requests.post is called once when an article is approved
         """
-        self.client.login(username='editor', password='pass123')
+        self.client.login(username="editor", password="pass123")
 
-        self.client.get(f'/approve/{self.article.id}/')
+        self.client.get(f"/approve/{self.article.id}/")
 
         mock_post.assert_called_once()
