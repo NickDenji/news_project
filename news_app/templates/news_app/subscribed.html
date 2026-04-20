@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Subscribed Feed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-4">
+
+    <a href="/" class="btn btn-secondary mb-3">← Back to Home</a>
+
+    <h1 class="mb-4">My Subscribed Feed</h1>
+
+    {% for article in articles %}
+        <div class="card mb-3">
+            <div class="card-body">
+
+                <h5 class="card-title">{{ article.title }}</h5>
+                <p class="card-text">{{ article.content }}</p>
+
+                <small class="text-muted">
+                    By {{ article.author }} | {{ article.created_at }}
+                </small>
+
+            </div>
+        </div>
+    {% empty %}
+        <p>You are not subscribed to any journalists yet.</p>
+    {% endfor %}
+
+</div>
+</body>
+</html>

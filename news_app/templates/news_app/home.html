@@ -9,6 +9,14 @@
 <div class="container mt-4">
 
     <div class="mb-3">
+        <a href="/" class="btn btn-outline-secondary btn-sm">Home</a>
+
+        {% if is_reader %}
+            <a href="/subscribed/" class="btn btn-dark btn-sm">My Feed</a>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
         {% if user.is_authenticated %}
             <div class="d-flex justify-content-between align-items-center">
                 <p class="mb-0">
@@ -27,40 +35,101 @@
         {% endif %}
     </div>
 
-    <h1 class="mb-4">Articles</h1>
-
-    {% for article in articles %}
-        <div class="card mb-3">
-            <div class="card-body">
-
-                <h5 class="card-title">{{ article.title }}</h5>
-                <p class="card-text">{{ article.content }}</p>
-
-                <small class="text-muted">
-                    By {{ article.author }} | {{ article.created_at }}
-                </small>
-
-                <p class="mt-2">
-                    <strong>Status:</strong>
-                    {% if article.approved %}
-                        <span class="text-success">Approved</span>
-                    {% else %}
-                        <span class="text-danger">Not Approved</span>
-                    {% endif %}
-                </p>
-
-                {% if user.role == 'editor' and not article.approved %}
-                    <a href="{% url 'approve_article' article.id %}" class="btn btn-success btn-sm">
-                        Approve
-                    </a>
-                {% endif %}
-
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">
+                {{ message }}
             </div>
-        </div>
+        {% endfor %}
+    {% endif %}
 
-    {% empty %}
-        <p>No articles available.</p>
-    {% endfor %}
+    {% if is_reader %}
+
+        <h1 class="mb-4">Journalists</h1>
+
+        {% for journalist in journalists %}
+            <div class="card mb-3">
+                <div class="card-body">
+
+                    <h5>{{ journalist.username }}</h5>
+
+                    {% if journalist in user.subscribed_journalists.all %}
+                        <span class="badge bg-success">Subscribed</span>
+                        <a href="/unsubscribe/{{ journalist.id }}/" class="btn btn-danger btn-sm ms-2">
+                            Unsubscribe
+                        </a>
+                    {% else %}
+                        <a href="/subscribe/{{ journalist.id }}/" class="btn btn-outline-primary btn-sm">
+                            Subscribe
+                        </a>
+                    {% endif %}
+
+                </div>
+            </div>
+        {% empty %}
+            <p>No journalists available.</p>
+        {% endfor %}
+
+    {% else %}
+
+        {% if user.is_authenticated and user.role == 'journalist' %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5>Create Article</h5>
+                    <form method="post" action="/create-article/">
+                        {% csrf_token %}
+                        <input name="title" class="form-control mb-2" placeholder="Title" required>
+                        <textarea name="content" class="form-control mb-2" placeholder="Content" required></textarea>
+                        <button class="btn btn-primary btn-sm">Post</button>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+
+        <h1 class="mb-4">Articles</h1>
+
+        {% for article in articles %}
+            <div class="card mb-3">
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        {{ article.title }}
+
+                        {% if article.author == user %}
+                            <span class="badge bg-info">Your post</span>
+                        {% endif %}
+                    </h5>
+
+                    <p class="card-text">{{ article.content }}</p>
+
+                    <small class="text-muted">
+                        By {{ article.author }} |
+                        {{ article.created_at|timesince }} ago
+                    </small>
+
+                    <p class="mt-2">
+                        <strong>Status:</strong>
+                        {% if article.approved %}
+                            <span class="badge bg-success">Approved</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% endif %}
+                    </p>
+
+                    {% if user.role == 'editor' and not article.approved %}
+                        <a href="{% url 'approve_article' article.id %}" class="btn btn-success btn-sm">
+                            Approve
+                        </a>
+                    {% endif %}
+
+                </div>
+            </div>
+
+        {% empty %}
+            <p>No articles available.</p>
+        {% endfor %}
+
+    {% endif %}
 
 </div>
 </body>

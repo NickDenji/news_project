@@ -27,42 +27,90 @@ from .permissions import IsReader
 
 def register(request):
     """
-    Handles user registration.
+    Handles user registration with password confirmation.
     """
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        role = request.POST.get("role")
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+        role = request.POST.get('role')
 
-        user = User.objects.create_user(username=username, password=password, role=role)
+        if password != confirm_password:
+            return render(request, 'news_app/register.html', {
+                'error': 'Passwords do not match'
+            })
+
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            role=role
+        )
 
         login(request, user)
-        return redirect("home")
+        return redirect('home')
 
-    return render(request, "news_app/register.html")
+    return render(request, 'news_app/register.html')
 
 
 def home(request):
     """
-    Displays articles based on user role.
+    Home page forces authentication before access.
     """
 
     if not request.user.is_authenticated:
-        return render(request, "news_app/home.html")
+        return redirect("/login/")
+
+    if request.user.role == "reader":
+        journalists = User.objects.filter(role="journalist")
+        return render(request, "news_app/home.html", {
+            "journalists": journalists,
+            "is_reader": True
+        })
 
     if request.user.role == "editor":
         articles = Article.objects.all()
+        return render(request, "news_app/home.html", {
+            "articles": articles,
+            "is_reader": False
+        })
 
-    elif request.user.role == "reader":
-        articles = Article.objects.filter(
-            approved=True, author__in=request.user.subscribed_journalists.all()
-        )
-
-    else:
-        # journalist
+    if request.user.role == "journalist":
         articles = Article.objects.filter(approved=True)
+        return render(request, "news_app/home.html", {
+            "articles": articles,
+            "is_reader": False
+        })
 
-    return render(request, "news_app/home.html", {"articles": articles})
+
+@login_required
+def subscribe(request, user_id):
+    """
+    Allows a reader to subscribe to a journalist.
+    Prevents duplicate subscriptions.
+    """
+    if request.user.role != "reader":
+        return redirect("home")
+
+    journalist = User.objects.get(id=user_id)
+
+    if journalist.role != "journalist":
+        return redirect("home")
+
+    # Only add if not already subscribed
+    if journalist not in request.user.subscribed_journalists.all():
+        request.user.subscribed_journalists.add(journalist)
+
+    return redirect("home")
+
+
+@login_required
+def unsubscribe(request, user_id):
+    """
+    Allows a reader to unsubscribe from a journalist.
+    """
+    journalist = User.objects.get(id=user_id)
+    request.user.subscribed_journalists.remove(journalist)
+    return redirect("home")
 
 
 def is_editor(user):
@@ -99,6 +147,49 @@ def approve_article(request, article_id):
         )
 
     return redirect("home")
+
+
+@login_required
+def create_article(request):
+    """
+    Allows journalists to create articles via UI.
+    """
+    if request.user.role != "journalist":
+        return redirect("home")
+
+    if request.method == "POST":
+        title = request.POST.get("title")
+        content = request.POST.get("content")
+
+        Article.objects.create(
+            title=title,
+            content=content,
+            author=request.user,
+            approved=False,
+        )
+
+        return redirect("home")
+
+    return render(request, "news_app/create_article.html")
+
+
+@login_required
+def subscribed_articles(request):
+    """
+    Displays articles from subscribed journalists (UI version).
+    """
+
+    if request.user.role != "reader":
+        return redirect("home")
+
+    articles = Article.objects.filter(
+        approved=True,
+        author__in=request.user.subscribed_journalists.all()
+    )
+
+    return render(request, "news_app/subscribed.html", {
+        "articles": articles
+    })
 
 
 class ArticleListAPIView(APIView):
