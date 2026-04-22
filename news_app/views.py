@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Article, User, Newsletter
+from .models import Article, User, Newsletter, Publisher
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import user_passes_test
@@ -25,6 +25,23 @@ from django.core.mail import send_mail
 from django.contrib import messages
 
 # Create your views here.
+
+
+@login_required
+def create_publisher(request):
+    """
+    Allows editors to create publishers.
+    """
+
+    if request.user.role != "editor":
+        return redirect("home")
+
+    if request.method == "POST":
+        name = request.POST.get("name")
+        Publisher.objects.create(name=name)
+        return redirect("home")
+
+    return render(request, "news_app/create_publisher.html")
 
 
 @login_required
@@ -198,27 +215,35 @@ def is_editor(user):
 @login_required
 def create_article(request):
     """
-    Create a new article.
-
-    Access:
-        - Journalists only
-
-    Returns:
-        HttpResponse: Form page or redirect to home
+    Allows journalists to create an article and assign a publisher.
     """
+
     if request.user.role != "journalist":
         return redirect("home")
 
+    publishers = Publisher.objects.all()
+
     if request.method == "POST":
+        title = request.POST.get("title")
+        content = request.POST.get("content")
+        publisher_id = request.POST.get("publisher")
+
+        publisher = None
+        if publisher_id:
+            publisher = Publisher.objects.get(id=publisher_id)
+
         Article.objects.create(
-            title=request.POST.get("title"),
-            content=request.POST.get("content"),
+            title=title,
+            content=content,
             author=request.user,
-            approved=False,
+            publisher=publisher
         )
+
         return redirect("home")
 
-    return render(request, "news_app/create_article.html")
+    return render(request, "news_app/create_article.html", {
+        "publishers": publishers
+    })
 
 
 @login_required
@@ -267,13 +292,16 @@ def subscribed_articles(request):
 @login_required
 def create_newsletter(request):
     """
-    Allows ONLY journalists to create newsletters.
+    Allows journalists and editors to create newsletters.
     """
 
-    if request.user.role != "journalist":
+    if request.user.role not in ["journalist", "editor"]:
         return redirect("home")
 
-    articles = Article.objects.filter(author=request.user)
+    if request.user.role == "journalist":
+        articles = Article.objects.filter(author=request.user)
+    else:
+        articles = Article.objects.all()
 
     if request.method == "POST":
         title = request.POST.get("title")

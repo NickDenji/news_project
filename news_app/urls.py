@@ -24,4 +24,5 @@ urlpatterns = [
     path("update-newsletter/<int:newsletter_id>/", views.update_newsletter, name="update_newsletter"),
     path("delete-newsletter/<int:newsletter_id>/", views.delete_newsletter, name="delete_newsletter"),
     path("article/<int:article_id>/", views.article_detail, name="article_detail"),
+    path("create-publisher/", views.create_publisher, name="create_publisher"),
 ]

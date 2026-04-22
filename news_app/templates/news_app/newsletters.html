@@ -13,7 +13,7 @@
     <h1 class="mb-4">Newsletters</h1>
 
     <!-- ONLY JOURNALISTS CAN CREATE -->
-    {% if user.role == 'journalist' %}
+    {% if user.role == 'journalist' or user.role == 'editor' %}
         <a href="/create-newsletter/" class="btn btn-primary mb-3">
             Create Newsletter
         </a>

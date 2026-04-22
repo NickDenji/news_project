@@ -8,17 +8,24 @@
 
 <div class="container mt-4">
 
+    <!-- NAVBAR -->
     <div class="mb-3">
-    <a href="/" class="btn btn-outline-secondary btn-sm">Home</a>
+        <a href="/" class="btn btn-outline-secondary btn-sm">Home</a>
 
-    <a href="/newsletters/" class="btn btn-outline-primary btn-sm">
-        Newsletters
-    </a>
+        <a href="/newsletters/" class="btn btn-outline-primary btn-sm">
+            Newsletters
+        </a>
 
-    {% if is_reader %}
-        <a href="/subscribed/" class="btn btn-dark btn-sm">My Feed</a>
-    {% endif %}
-</div>
+        {% if user.is_authenticated and user.role == 'editor' %}
+            <a href="/create-publisher/" class="btn btn-outline-success btn-sm">
+                Create Publisher
+            </a>
+        {% endif %}
+
+        {% if is_reader %}
+            <a href="/subscribed/" class="btn btn-dark btn-sm">My Feed</a>
+        {% endif %}
+    </div>
 
     <div class="mb-3">
         {% if user.is_authenticated %}
@@ -77,17 +84,9 @@
     {% else %}
 
         {% if user.is_authenticated and user.role == 'journalist' %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5>Create Article</h5>
-                    <form method="post" action="/create-article/">
-                        {% csrf_token %}
-                        <input name="title" class="form-control mb-2" placeholder="Title" required>
-                        <textarea name="content" class="form-control mb-2" placeholder="Content" required></textarea>
-                        <button class="btn btn-primary btn-sm">Post</button>
-                    </form>
-                </div>
-            </div>
+            <a href="/create-article/" class="btn btn-primary mb-3">
+                Create Article
+            </a>
         {% endif %}
 
         <h1 class="mb-4">Articles</h1>
@@ -106,6 +105,10 @@
 
                     <p class="card-text">{{ article.content }}</p>
 
+                    {% if article.publisher %}
+                        <p><strong>Publisher:</strong> {{ article.publisher }}</p>
+                    {% endif %}
+
                     <small class="text-muted">
                         By {{ article.author }} |
                         {{ article.created_at|timesince }} ago
@@ -120,7 +123,6 @@
                         {% endif %}
                     </p>
 
-                    <!-- ACTION BUTTONS -->
                     <div class="mt-2">
 
                         {% if user.role == 'editor' and not article.approved %}

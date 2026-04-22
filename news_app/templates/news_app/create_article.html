@@ -7,23 +7,29 @@
 <body class="bg-light">
 
 <div class="container mt-5">
+
     <h2>Create Article</h2>
 
     <form method="post">
         {% csrf_token %}
 
-        <div class="mb-3">
-            <label>Title</label>
-            <input type="text" name="title" class="form-control" required>
-        </div>
+        <input name="title" class="form-control mb-2" placeholder="Title" required>
 
-        <div class="mb-3">
-            <label>Content</label>
-            <textarea name="content" class="form-control" required></textarea>
-        </div>
+        <textarea name="content" class="form-control mb-3" placeholder="Content" required></textarea>
 
-        <button class="btn btn-primary">Create</button>
+        <label>Publisher</label>
+        <select name="publisher" class="form-select mb-3">
+            <option value="">No Publisher</option>
+            {% for publisher in publishers %}
+                <option value="{{ publisher.id }}">{{ publisher.name }}</option>
+            {% endfor %}
+        </select>
+
+        <button class="btn btn-primary">Create Article</button>
     </form>
+
+    <a href="/" class="btn btn-secondary mt-3">Back</a>
+
 </div>
 
 </body>
