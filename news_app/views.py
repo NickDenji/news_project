@@ -23,6 +23,8 @@ from django.contrib.auth import login
 from .permissions import IsReader
 from django.core.mail import send_mail
 from django.contrib import messages
+import requests
+from django.http import JsonResponse
 
 # Create your views here.
 
@@ -409,41 +411,46 @@ def subscribe_newsletter(request, newsletter_id):
 @login_required
 def approve_article(request, article_id):
     """
-    Approve an article and notify the author via email.
-
-    Access:
-        - Editors only
-
-    Behaviour:
-        - Marks article as approved
-        - Sends notification email
-
-    Args:
-        article_id (int): ID of article
-
-    Returns:
-        HttpResponse: Redirect to home
+    Allows editor to approve an article and logs it to external API.
     """
-
-    article = get_object_or_404(Article, id=article_id)
 
     if request.user.role != "editor":
         return redirect("home")
 
+    article = get_object_or_404(Article, id=article_id)
+
     article.approved = True
     article.save()
 
-    send_mail(
-        subject="Article Approved",
-        message=f"Your article '{article.title}' has been approved.",
-        from_email="admin@example.com",
-        recipient_list=[article.author.email or "test@example.com"],
-        fail_silently=True,
-    )
-
-    messages.success(request, "Article approved")
+    try:
+        requests.post(
+            "http://127.0.0.1:8000/api/approved/",
+            json={
+                "article_id": article.id,
+                "title": article.title,
+                "author": article.author.username,
+            },
+            headers={
+                "Authorization": f"Token {request.user.auth_token.key}"
+            },
+            timeout=2
+        )
+    except requests.exceptions.RequestException:
+        pass
 
     return redirect("home")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def approved_article_log(request):
+    """
+    Logs approved articles (simulating external API).
+    """
+
+    article_id = request.data.get("article_id")
+
+    return Response({"message": f"Article {article_id} received by external API"})
 
 
 class ArticleListAPIView(APIView):
@@ -545,15 +552,3 @@ class ArticleDeleteAPIView(DestroyAPIView):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     permission_classes = [IsAuthenticated, IsEditor]
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def approved_article_log(request):
-    """
-    Logs approved articles (simulating external API).
-    """
-
-    article_id = request.data.get("article_id")
-
-    return Response({"message": f"Article {article_id} received by external API"})

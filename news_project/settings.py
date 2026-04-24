@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "news_app",
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -122,8 +123,8 @@ AUTH_USER_MODEL = "news_app.User"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
     ],
 }
 
